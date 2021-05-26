@@ -7,21 +7,25 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config.dart';
+
 class AuthProvider with ChangeNotifier {
   String _token;
   String _userId;
-  final baseUrl = 'http://10.0.2.2:8000/';
+  String _userEmail;
+  String _userName;
 
   String get token => _token;
-
   String get userId => _userId;
+  String get userEmail => _userEmail;
+  String get userName => _userName;
 
   bool get isAuthenticated => token != null;
 
   Future<void> login(String email, String password) async {
     try {
       final response = await http.post(
-        baseUrl + 'api/login',
+        Uri.parse('$API_URL/login'),
         body: {
           'email': email,
           'password': password,
@@ -36,17 +40,48 @@ class AuthProvider with ChangeNotifier {
       }
 
       _token = responseData['token'];
-      _userId = responseData['user_id'];
+      _userId = responseData['user_id'].toString();
+      _userEmail = responseData['user_email'];
+      _userName = responseData['user_name'];
 
       notifyListeners();
 
       final prefs = await SharedPreferences.getInstance();
       final userData = json.encode({
-        'userId': _userId,
+        'userId': _userId.toString(),
         'token': _token,
+        'userEmail': _userEmail,
+        'userName': _userName,
       });
       prefs.setString('userData', userData);
     } catch (error) {
+      print(error.toString());
+      throw error;
+    }
+  }
+
+  Future<bool> register(String name, String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$API_URL/register'),
+        headers: {
+          HttpHeaders.authorizationHeader: 'Bearer $token',
+          'Accept': 'application/json',
+        },
+        body: {
+          'name': name,
+          'email': email,
+          'password': password,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      print(error.toString());
       throw error;
     }
   }
@@ -64,5 +99,54 @@ class AuthProvider with ChangeNotifier {
     } on PlatformException {
       print('Failed to get platform version');
     }
+  }
+
+  Future<bool> tryAutoLogin() async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!prefs.containsKey('userData')) {
+      return false;
+    }
+
+    final extractedUserData = json.decode(prefs.getString('userData')) as Map<String, Object>;
+
+    _token = extractedUserData['token'];
+    _userId = extractedUserData['userId'];
+    _userEmail = extractedUserData['userEmail'];
+    _userName = extractedUserData['userName'];
+
+    notifyListeners();
+
+    print(_token);
+
+    return true;
+  }
+
+  Future<void> logout() async {
+    _userId = null;
+    _token = null;
+    _userEmail = null;
+    _userName = null;
+
+    final prefs = await SharedPreferences.getInstance();
+    final extractedUserData = json.decode(prefs.getString('userData')) as Map<String, Object>;
+    var token = extractedUserData['token'];
+
+    prefs.clear();
+
+    final response = await http.post(
+      Uri.parse('$API_URL/logout'),
+      headers: {
+        HttpHeaders.authorizationHeader: "Bearer $token",
+        'Accept': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 401) {} else {
+      throw Exception('Failed to clear token.');
+    }
+
+    notifyListeners();
   }
 }

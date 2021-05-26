@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:vcoms/models/cart.dart';
+import 'package:provider/provider.dart';
+import 'package:vcoms/screens/checkout_screen.dart';
+
+import '../models/cart.dart';
+import '../providers/cart.dart';
 
 class CartPage extends StatefulWidget {
   @override
@@ -7,104 +11,75 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
-  int itemsCount = 0;
-  double totalPrice = 0;
-
-  List<Cart> cartList = [
-    new Cart(
-      productId: 1,
-      name: 'Red Velvet',
-      quantity: 1,
-      price: 50.50,
-    ),
-    new Cart(
-      productId: 1,
-      name: 'Brownies',
-      quantity: 1,
-      price: 20.50,
-    ),
-    new Cart(
-      productId: 1,
-      name: 'Carrot Cake',
-      quantity: 1,
-      price: 40.50,
-    ),
-    new Cart(
-      productId: 1,
-      name: 'Vanilla Cake',
-      quantity: 1,
-      price: 50.50,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    itemsCount = cartList.length;
-    totalPrice = 0;
-    cartList.forEach((cart) {
-      totalPrice += (cart.price * cart.quantity);
-    });
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Cart'),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Card(
-              elevation: 5,
-              margin: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              child: ListView.separated(
-                physics: NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                padding: EdgeInsets.all(0),
-                separatorBuilder: (context, index) =>
-                    Divider(color: Colors.grey),
-                itemCount: cartList.length,
-                itemBuilder: (context, index) => _buildCartList(index),
-              ),
-            ),
-            Card(
-              elevation: 5,
-              margin: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                child: Text(
-                  "Total ($itemsCount items): RM " + totalPrice.toStringAsFixed(2),
-                  textAlign: TextAlign.end,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
+      body: Consumer<CartProvider>(
+        builder: (context, cart, _) {
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                Card(
+                  elevation: 5,
+                  margin: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  child: cart.carts.length > 0
+                      ? ListView.separated(
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          padding: EdgeInsets.all(0),
+                          separatorBuilder: (context, index) => Divider(color: Colors.grey),
+                          itemCount: cart.carts.length,
+                          itemBuilder: (context, index) => _buildCartList(cart.carts[index]),
+                        )
+                      : ListTile(
+                          title: Text('No item added to cart..', style: TextStyle(fontFamily: 'Arial')),
+                        ),
+                ),
+                Card(
+                  elevation: 5,
+                  margin: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                    child: Text(
+                      "Total (${cart.carts.length} items): RM " + cart.total.toStringAsFixed(2),
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontFamily: 'Arial',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                ElevatedButton(
+                  child: Text('Checkout'),
+                  style: ElevatedButton.styleFrom(primary: Color.fromRGBO(255, 63, 111, 1)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CheckoutScreen(totalPrice: cart.total),
+                      ),
+                    );
+                  },
+                )
+              ],
             ),
-            ElevatedButton(
-              child: Text('Checkout'),
-              style: ElevatedButton.styleFrom(
-                  primary: Color.fromRGBO(255, 63, 111, 1)),
-              onPressed: () {},
-            )
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  _confirmRemoveItem(int index) {
-    setState(() {
-      cartList.removeAt(index);
-    });
-  }
-
-  Widget _buildCartList(int index) {
+  Widget _buildCartList(Cart cart) {
     return ListTile(
-      title: Text(cartList[index].name ?? ''),
-      subtitle: Text('RM ' +
-          (cartList[index].price * cartList[index].quantity).toStringAsFixed(2)),
+      title: Text('${cart.name}'),
+      subtitle: Text('RM ${(cart.price * cart.quantity).toStringAsFixed(2)}'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -112,7 +87,7 @@ class _CartPageState extends State<CartPage> {
             icon: Icon(Icons.remove),
             onPressed: () {
               // cartList[index].quantity--;
-              int tempQuantity = cartList[index].quantity - 1;
+              int tempQuantity = cart.quantity - 1;
               if (tempQuantity == 0) {
                 showDialog(
                   context: context,
@@ -130,7 +105,7 @@ class _CartPageState extends State<CartPage> {
                         TextButton(
                           child: Text("Confirm"),
                           onPressed: () {
-                            _confirmRemoveItem(index);
+                            Provider.of<CartProvider>(context, listen: false).removeFromCart(cart);
                             Navigator.of(context).pop();
                           },
                         ),
@@ -141,17 +116,17 @@ class _CartPageState extends State<CartPage> {
                 // cartList.removeAt(index);
               } else {
                 setState(() {
-                  cartList[index].quantity--;
+                  cart.quantity--;
                 });
               }
             },
           ),
-          Text(cartList[index].quantity.toString()),
+          Text(cart.quantity.toString()),
           IconButton(
             icon: Icon(Icons.add),
             onPressed: () {
               setState(() {
-                cartList[index].quantity++;
+                cart.quantity++;
               });
             },
           ),

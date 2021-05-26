@@ -5,8 +5,8 @@ import '../screens/cartPage.dart';
 import '../screens/homePage.dart';
 import '../screens/profilePage.dart';
 
+// ignore: must_be_immutable
 class NavigationBarPage extends StatefulWidget {
-  // ignore: must_be_immutable
   int selectedIndex;
 
   NavigationBarPage({@required this.selectedIndex});
@@ -42,8 +42,7 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
   }
 
   void onTabTapped(int index) {
-    this._pageController.animateToPage(index,
-        duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+    this._pageController.animateToPage(index, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
   }
 
   @override
@@ -81,7 +80,7 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
 
           Icon(Icons.account_circle, size: 26, color: Colors.white),
           Icon(Icons.home, size: 26, color: Colors.white),
-          Icon(Icons.add_shopping_cart, size: 26, color: Colors.white),
+          Icon(Icons.shopping_bag, size: 26, color: Colors.white),
         ],
       ),
     );

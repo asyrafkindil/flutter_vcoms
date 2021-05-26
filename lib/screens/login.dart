@@ -28,32 +28,28 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _submitForm() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NavigationBarPage(selectedIndex: 1),
-      ),
-    );
-    return;
+
     if (!_formKey.currentState.validate()) {
       return;
     }
     _formKey.currentState.save();
 
-    AuthProvider authProvider =
-        Provider.of<AuthProvider>(context, listen: false);
+    AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    RegExp regExp =
-        new RegExp(r'^([a-zA-Z0-9_\-.]+)@([a-zA-Z0-9_\-.]+)\.([a-zA-Z]{2,5})$');
+    RegExp regExp = new RegExp(r'^([a-zA-Z0-9_\-.]+)@([a-zA-Z0-9_\-.]+)\.([a-zA-Z]{2,5})$');
     if (!regExp.hasMatch(_email)) {
       toast("Enter a valid Email ID");
-    } else if (_password.length < 8) {
-      toast("Password must have at least 8 characters");
     } else {
-      print("Success");
       try {
         authProvider.login(_email, _password);
-        toast('success');
+        print("Login success");
+        toast('Login success');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NavigationBarPage(selectedIndex: 1),
+          ),
+        );
       } on Exception catch (e) {
         toast(e.toString());
       }
@@ -72,13 +68,13 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(40),
           ),
           child: TextFormField(
+            style: TextStyle(fontFamily: 'Arial'),
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
+              if (value.isEmpty) return 'Email is required.';
               return null;
             },
-            onSaved: (value) {
-              _email = value;
-            },
+            onSaved: (value) => _email = value,
             cursorColor: Color.fromRGBO(255, 63, 111, 1),
             decoration: InputDecoration(
               border: InputBorder.none,
@@ -103,8 +99,12 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(40),
           ),
           child: TextFormField(
+            style: TextStyle(fontFamily: 'Arial'),
             obscureText: true,
-            validator: (value) => null,
+            validator: (value) {
+              if (value.isEmpty) return 'Password is required.';
+              return null;
+            },
             onSaved: (value) => _password = value,
             keyboardType: TextInputType.visiblePassword,
             cursorColor: Color.fromRGBO(255, 63, 111, 1),
@@ -187,9 +187,9 @@ class _LoginPageState extends State<LoginPage> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color.fromRGBO(255, 138, 120, 1),
-              Color.fromRGBO(255, 114, 117, 1),
-              Color.fromRGBO(255, 63, 111, 1),
+              Color.fromRGBO(255, 138, 120, 1.0),
+              Color.fromRGBO(255, 114, 117, 1.0),
+              Color.fromRGBO(255, 63, 111, 1.0),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -197,7 +197,6 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: Form(
           key: _formKey,
-          autovalidate: true,
           child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
